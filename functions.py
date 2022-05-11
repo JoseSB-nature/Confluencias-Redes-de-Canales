@@ -1241,6 +1241,17 @@ def plot_all_in_one_ws(A_red, Q_red, S_red, x_red, Bw_red, slope_red, t, t_real,
                 dpi=quality)  # , facecolor='w')
 
 
+@jit
+def nuevo_cont_eps_red(g, n, k, A, Q, Bw, slope, nx_cell, nt_cell, Delta_x, Dt_list, previo, S_ini, gradiente, medidas, eps):
+
+    aux = previo + gradiente*eps
+    up_contS = aux.copy()
+
+    _, contorno = soluto_forward_red(
+        g, n, k, A, Q, S_ini, Bw, slope, nx_cell, nt_cell, Delta_x, Dt_list, up_contS)
+    return objetivo(contorno, medidas)
+
+
 #@jit
 def soluto_forward_red(g, n, k, A, Q, S_inicio, Bw, slope, x_axis,nx_cell, nt_cell, Delta_x, Delta_t, up_contS,N_c,matrix,plot=False, fr=10):
     
@@ -1326,8 +1337,8 @@ def soluto_forward_red(g, n, k, A, Q, S_inicio, Bw, slope, x_axis,nx_cell, nt_ce
 def evolucion_inversa_red(soluto, _medidas, nx_cell, nt, Dx, Dt, Q, A, K, N_c, matrix):
 
     sigma=np.zeros(nt)
-    sigma_prev = [np.zeros(nx[i]) for i in range(N_c)]
-    sigma_new = [np.zeros(nx[i]) for i in range(N_c)]
+    sigma_prev = [np.zeros(nx_cell[i]) for i in range(N_c)]
+    sigma_new = [np.zeros(nx_cell[i]) for i in range(N_c)]
 
 
     for t in range(nt):
@@ -1337,7 +1348,7 @@ def evolucion_inversa_red(soluto, _medidas, nx_cell, nt, Dx, Dt, Q, A, K, N_c, m
             Delta_x=Dx[i]
             nx=nx_cell[i]
 
-            for x in range(nx):
+            for x in range(nx-1):
 
                 Q_ = Q[i][x]
                 A_ = A[i][x]
@@ -1353,8 +1364,8 @@ def evolucion_inversa_red(soluto, _medidas, nx_cell, nt, Dx, Dt, Q, A, K, N_c, m
                 # else:
                 #   _fases_sig[i][x,t] += E*Delta_t/(Delta_x**2) * (_fases_sig[i][x+1,t+1]-2*_fases_sig[i][x,t+1]+_fases_sig[i][x-1,t+1])
 
-                if (x+1) == (nx) and sum(matrix[i,:])==0:
-                    aux = -(soluto[t+1]-_medidas[t+1]) * Dt / A_
+                if (x+1) == (nx-1) and sum(matrix[i,:])==0:
+                    aux = -(soluto[t]-_medidas[t]) * Dt / A_
                     # print(aux)
                     sigma_new[i][x] = sigma_new[i][x] + aux
 

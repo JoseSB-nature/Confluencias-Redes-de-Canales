@@ -30,14 +30,14 @@ x_axis=[np.linspace(0,L[i],nx_cell[i]) for i in range(N_canals) ]
 #Contorno
 Soluto_up=np.zeros((N_canals,nt_cell))
 t_axis=np.linspace(0,t_soluto,nt_cell)
-t_med=20
-t_sig=5
+t_med=60
+t_sig=10
 
-Soluto_up[1]=Soluto_up[1]+4.0
+Soluto_up[1]=Soluto_up[1]+0.0
 
 Soluto_up[2]=[4.0 if i>15 else 0.0 for i in range(nt_cell)]
 
-#Soluto_up[2]=2*np.exp(-(t_axis-t_med)**2/(2*t_sig**2))
+Soluto_up[2]=5*np.exp(-(t_axis-t_med)**2/(2*t_sig**2))
 
 S_new,S_cont=soluto_forward_red(gravedad,manning,k_r,A_inicio,Q_inicio,S_inicio,Base_width,Slope_z,x_axis,nx_cell,nt_cell,Delta_x,Delta_t,Soluto_up,N_canals,matriz,plot=True,fr=freq2)
 

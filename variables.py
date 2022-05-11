@@ -21,6 +21,8 @@ time = 5000
 
 # Soluto
 freq2=50
-t_soluto=1000
+t_soluto=800
 k_r=0.0
+
+
 
