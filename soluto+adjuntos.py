@@ -54,81 +54,71 @@ medidas= S_cont[0] # aquí hay que seleccionar lo que se toma como medidas
 #medida de tiempo
 plt.style.use('default')
 
-start1 = pytime.time()
   
 
 #punto de partida
-phi_i = np.zeros(nx_cell)
-phi_c = np.zeros(nt_cell)
+phi_i = [np.zeros(nx_cell[i]) for i in range(N_canals)]
+phi_c = np.zeros((N_canals,nt_cell))
 
-firewall = 100
+firewall = 10
 eps_i=0.4
 eps_c=0.4
 
-Diferencia = 1e3
-Diferencia_old = Diferencia+1
+
 error=[]
 cont = 0
 
-medidas=Soluto_contorno.copy()
 
-time_up = t_river
+time_up = t_soluto
 
 #plot evolucion de la solución
 fig4, ax4 = plt.subplots()
 ax4.grid()
-ax4.set_xlabel('x [m]')
-ax4.set_ylabel('$\phi\,[gr\,/\,cm^3]$')
-ax4.set_title('transporte convectivo de flujo variable')
+ax4.set_xlabel('t [s]')
+ax4.set_ylabel('$\phi_1\,[gr\,/\,cm^3]$')
+ax4.set_title('Reconstrucción Contorno red')
 
 
 #evolucion de la variable adjunta
 fig6, ax6=plt.subplots()
-ax6.set_title("$\sigma (x,0)$")
-ax6.set_xlabel(f'$x\;[\Delta x={Delta_x}]$')
+ax6.set_title("$\sigma_1 (x,0)$")
+ax6.set_xlabel(f'$t\;[\Delta t={Delta_t}]$')
 ax6.set_ylabel(f'$\sigma$')
 ax6.grid()
-t_1=pytime.time()
-s_final,s_contorno=soluto_forward(gravedad,manning,k_r,
-                                    A_river,Q_river,phi_i,
-                                    Base_river,Slope_river,
+
+s_final,s_contorno=soluto_forward_red(gravedad,manning,k_r,
+                                    A_inicio,Q_inicio,phi_i,
+                                    Base_width,Slope_z,x_axis,
                                     nx_cell,nt_cell,Delta_x,Delta_t,
-                                    s_up_river)
-t_2=pytime.time()
-print('adjunto forward:',t_2-t_1)
+                                    phi_c,N_canals, matriz)
+
+
 Diferencia = objetivo(s_contorno,medidas)
 #error.append(Diferencia)
 
 ad_cont=np.zeros(nt_cell)
-ad_ini=np.zeros(nx_cell)
+
 
 while cont<firewall and Diferencia>1e-9:# and Diferencia_old-Diferencia>-1e-6:
-  t_1=pytime.time()
-  ad_ini,ad_cont=evolucion_inversa(s_contorno,medidas,nx_cell,nt_cell,Delta_x,Delta_t,Q_river,A_river,K=k_r)
+  
+  ad_ini,ad_cont=evolucion_inversa_red(s_contorno,medidas,nx_cell,nt_cell,Delta_x,Delta_t,Q_inicio,A_inicio,K=k_r)
   Diferencia_old = Diferencia
-  t_2=pytime.time()
+  
   if cont<3:print('adjunto backward:',t_2-t_1)
 
   if cont%1==0:
-    t_1=pytime.time()
-    res_i = minimize_scalar(lambda x: nuevo_cont_eps_i(gravedad,manning,k_r,
-                                                    A_river,Q_river,
+    
+    res_c = minimize_scalar(lambda x: nuevo_cont_eps_i(gravedad,manning,k_r,
+                                                    A_inicio,Q_inicio,
                                                     Base_width,Slope_z,
                                                     nx_cell,nt_cell,Delta_x,Delta_t,
                                                     phi_c,phi_i,ad_ini,medidas,x)
                                                     ,bounds=(0.01,200),method='bounded')#,options={'maxiter':100,'xatol':1e-3})
+  
     #print(res)
-    res_c = minimize_scalar(lambda x: nuevo_cont_eps_c(gravedad,manning,k_r,
-                                                    A_river,Q_river,
-                                                    Base_width,Slope_z,
-                                                    nx_cell,nt_cell,Delta_x,Delta_t,
-                                                    phi_c,phi_i,ad_cont,medidas,x)
-                                                    ,bounds=(0.01,200),method='bounded')#,options={'maxiter':100,'xatol':1e-3})
-    #print(res)
-    eps_i = res_i.x
     eps_c = res_c.x
-    t_2=pytime.time()
-    if cont<3:print('adjunto golden:',t_2-t_1) 
+    
+    
   else:
     eps_i=eps_c=0.4
 
@@ -137,10 +127,9 @@ while cont<firewall and Diferencia>1e-9:# and Diferencia_old-Diferencia>-1e-6:
 
   #phi_domain = np.zeros((nx_cell,nt_cell))
  
-  t_1=pytime.time()
-  s_final,s_contorno=soluto_forward(gravedad,manning,k_r,A_river,Q_river,phi_i,Base_width,Slope_z,nx_cell,nt_cell,Delta_x,Delta_t,phi_c)
-  t_2=pytime.time()
-  if cont<3:print('adjunto forward:',t_2-t_1)
+
+  s_final,s_contorno=soluto_forward(gravedad,manning,k_r,A_inicio,Q_inicio,phi_i,Base_width,Slope_z,nx_cell,nt_cell,Delta_x,Delta_t,phi_c)
+  
   #print('forward',fin1-start1)
   Diferencia = objetivo(s_contorno,medidas)
 
@@ -156,8 +145,7 @@ while cont<firewall and Diferencia>1e-9:# and Diferencia_old-Diferencia>-1e-6:
   
   cont+=1
 
-fin1= pytime.time()
-print('adjuntos:',fin1-start1)
+
 
 print (Diferencia_old,Diferencia)
 #error.append(Diferencia)

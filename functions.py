@@ -1323,7 +1323,7 @@ def soluto_forward_red(g, n, k, A, Q, S_inicio, Bw, slope, x_axis,nx_cell, nt_ce
 
 # La parte adjunta esta desarrollada específicamente para el llamado caso T
 
-def evolucion_inversa_red(soluto, _medidas, nx, nt, Dx, Dt, Q, A, K, N_c, matrix):
+def evolucion_inversa_red(soluto, _medidas, nx_cell, nt, Dx, Dt, Q, A, K, N_c, matrix):
 
     sigma=np.zeros(nt)
     sigma_prev = [np.zeros(nx[i]) for i in range(N_c)]
@@ -1335,29 +1335,38 @@ def evolucion_inversa_red(soluto, _medidas, nx, nt, Dx, Dt, Q, A, K, N_c, matrix
         for i in range(N_c):
 
             Delta_x=Dx[i]
+            nx=nx_cell[i]
 
-            for x in range(nx-1):
+            for x in range(nx):
 
-            Q_ = Q[i][x]
-            A_ = A[i][x]
-            u_ = Q_/A_
-            Dsig = sigma_prev[i][x+1]-sigma_prev[i][x]
-            #Dsig_minus = _fases_sig[i][x,t+1]-_fases_sig[i][x-1,t+1]
+                Q_ = Q[i][x]
+                A_ = A[i][x]
+                u_ = Q_/A_
+                Dsig = sigma_prev[i][x+1]-sigma_prev[i][x]
+                #Dsig_minus = _fases_sig[i][x,t+1]-_fases_sig[i][x-1,t+1]
 
-            # +  uplus * Dphi_plus) ??? Cambia el sentido de u
-            sigma_new[i][x] = sigma_prev[i][x] + Dt / Delta_x * (u_ * Dsig)
+                # +  uplus * Dphi_plus) ??? Cambia el sentido de u
+                sigma_new[i][x] = sigma_prev[i][x] + Dt / Delta_x * (u_ * Dsig)
 
-            # if x==0:
-            #   _fases_sig[i][x,t] += E*Delta_t/(Delta_x**2) * (_fases_sig[i][x+2,t+1]-2*_fases_sig[i][x+1,t+1]+_fases_sig[i][x,t+1])
-            # else:
-            #   _fases_sig[i][x,t] += E*Delta_t/(Delta_x**2) * (_fases_sig[i][x+1,t+1]-2*_fases_sig[i][x,t+1]+_fases_sig[i][x-1,t+1])
+                # if x==0:
+                #   _fases_sig[i][x,t] += E*Delta_t/(Delta_x**2) * (_fases_sig[i][x+2,t+1]-2*_fases_sig[i][x+1,t+1]+_fases_sig[i][x,t+1])
+                # else:
+                #   _fases_sig[i][x,t] += E*Delta_t/(Delta_x**2) * (_fases_sig[i][x+1,t+1]-2*_fases_sig[i][x,t+1]+_fases_sig[i][x-1,t+1])
 
-            if (x+1) == (nx-1):
-                aux = -(soluto[t+1]-_medidas[t+1]) * Dt / A_
-                # print(aux)
-                sigma_new[i][x] = sigma_new[i][x] + aux
-
-            sigma_new[i][x] = sigma_new[i][x] + sigma_prev[i][x] * K * Dt
+                if (x+1) == (nx) and sum(matrix[i,:])==0:
+                    aux = -(soluto[t+1]-_medidas[t+1]) * Dt / A_
+                    # print(aux)
+                    sigma_new[i][x] = sigma_new[i][x] + aux
 
 
-    pass
+                else:
+                    prop=Q[i][-1]/Q[0][0]
+                    sigma_new[i][-1]=sigma_prev[0][0]*prop
+
+
+                sigma_new[i][x] = sigma_new[i][x] + sigma_prev[i][x] * K * Dt
+
+        sigma[t]=sigma_new[1][0]
+
+
+    return sigma
