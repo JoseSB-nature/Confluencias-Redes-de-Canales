@@ -13,6 +13,10 @@ Delta_x=[L[i]/nx_cell[i] for i in range(N_canals)]
 
 Delta_t=min([calcula_dt(gravedad, np.array(A_inicio[j]), np.array(Q_inicio[j]), Base_width[j], nx_cell[j], CFL, Delta_x[j]) for j in range(N_canals)])
 
+Dtb = peclet*min(Delta_x)**2/E_dif
+
+print(Delta_t,' < ',Dtb)
+
 nt_cell=int(t_soluto/Delta_t)
 
 print (Delta_x,Delta_t)
@@ -27,19 +31,22 @@ S_inicio=np.array(S_inicio)
 
 x_axis=[np.linspace(0,L[i],nx_cell[i]) for i in range(N_canals) ]
 
+
 #Contorno
 Soluto_up=np.zeros((N_canals,nt_cell))
 t_axis=np.linspace(0,t_soluto,nt_cell)
-t_med=60
-t_sig=10
+t_med=400
+t_sig=60
+Soluto_up[2]=Soluto_up[1]+1.0
 
-Soluto_up[1]=Soluto_up[1]+0.0
+Soluto_up[1]=[4.0 if i>15 else 4.0 for i in range(nt_cell)]
 
-Soluto_up[2]=[4.0 if i>15 else 0.0 for i in range(nt_cell)]
+Soluto_up[1]=5*np.exp(-(t_axis-t_med)**2/(2*t_sig**2))
 
-Soluto_up[2]=5*np.exp(-(t_axis-t_med)**2/(2*t_sig**2))
 
-S_new,S_cont=soluto_forward_red(gravedad,manning,k_r,A_inicio,Q_inicio,S_inicio,Base_width,Slope_z,x_axis,nx_cell,nt_cell,Delta_x,Delta_t,Soluto_up,N_canals,matriz,plot=True,fr=freq2)
+
+
+S_new,S_cont=soluto_forward_red(gravedad,manning,k_r,E_dif,A_inicio,Q_inicio,S_inicio,Base_width,Slope_z,x_axis,nx_cell,nt_cell,Delta_x,Delta_t,Soluto_up,N_canals,matriz,plot=True,fr=freq2)
 
 plot_all_in_one_ws(A_inicio,Q_inicio,S_new,x_axis,Base_width,Slope_z,nt_cell,nt_cell*Delta_t,N_canals,[0,5],[0,8],'./images/Soluto/')
 

@@ -1,6 +1,7 @@
 from functions import *
 
-CFL=0.8
+CFL=1.0
+peclet=0.4
 gravedad = 9.8
 N_canals = 3
 
@@ -17,12 +18,11 @@ Slope_z = [[]]*N_canals
 Delta_x = []
 freq = 500
 
-time = 5000
+time = 2000
 
 # Soluto
 freq2=50
-t_soluto=800
+t_soluto=1200
 k_r=0.0
-
-
+E_dif=1
 
