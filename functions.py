@@ -8,6 +8,7 @@ from IPython import display
 import os
 from scipy.optimize import minimize_scalar
 import imageio
+from variables import contornos
 
 #plt.style.use('dark_background')
 
@@ -965,12 +966,12 @@ def calcula_in_out(_matrix,A,Q,index):
 #@njit
 def update_red(g: float, n_red, A_red, Q_red, Bw_red, slope_red, 
                 nx_cell_red, N_C, CFL, Delta_x_red, mode_red,
-                up_contA_red, up_contQ_red, down_contA_red, down_contQ_red,
-                matrix, t, t_r):
+                matrix, t, t_r,t_t):
 
     A_new=[[]]*N_C
     Q_new=[[]]*N_C
     
+    up_contA_red, up_contQ_red, down_contA_red, down_contQ_red = contornos(t_r,t_t)
 
     Delta_t=min([calcula_dt(g, np.array(A_red[j]), np.array(Q_red[j]), Bw_red[j], nx_cell_red[j], CFL, Delta_x_red[j]) for j in range(N_C)])
     #print (Delta_t)
@@ -1070,8 +1071,8 @@ def plot_perfil_soluto_red(A_red, Q_red, x_red, Bw_red, slope_red, t, t_real,N_c
     plt.style.use('Solarize_Light2')
     for i in range(N_canal):
 
-        A=np.array(A_red[i])
-        Q=np.array(Q_red[i])
+        A=np.array(A_red[t][i])
+        Q=np.array(Q_red[t][i])
         Bw=np.array(Bw_red[i])
         slope=np.array(slope_red[i])
         x=np.array(x_red[i])
@@ -1130,8 +1131,8 @@ def plot_all_in_one(A_red, Q_red, x_red, Bw_red, slope_red, t, t_real,N_canal, r
     ax2[0].set_title(f'Perfil de $U=(A,Q)$; t={t_real:.2f} s')
     for i in range(N_canal):
 
-        A=np.array(A_red[i])
-        Q=np.array(Q_red[i])
+        A=np.array(A_red[t-1][i])
+        Q=np.array(Q_red[t-1][i])
         Bw=np.array(Bw_red[i])
         slope=np.array(slope_red[i])
         x=np.array(x_red[i])
@@ -1201,8 +1202,8 @@ def plot_all_in_one_ws(A_red, Q_red, S_red, x_red, Bw_red, slope_red, t, t_real,
     ax2[0].set_title(f'Perfil de $U=(A,Q)$; t={t_real:.2f} s')
     for i in range(N_canal):
 
-        A=np.array(A_red[i])
-        Q=np.array(Q_red[i])
+        A=np.array(A_red[t-1][i])
+        Q=np.array(Q_red[t-1][i])
         S=np.array(S_red[i])
         Bw=np.array(Bw_red[i])
         slope=np.array(slope_red[i])
@@ -1253,7 +1254,7 @@ def nuevo_cont_eps_red(g, n, k, A, Q, Bw, slope, nx_cell, nt_cell, Delta_x, Dt_l
 
 
 #@jit
-def soluto_forward_red(g, n, k, E, A, Q, S_inicio, Bw, slope, x_axis,nx_cell, nt_cell, Delta_x, Delta_t, up_contS,N_c,matrix,plot=False, fr=10):
+def soluto_forward_red(g, n, k, E, A_red, Q_red, S_inicio, Bw, slope, x_axis,nx_cell, nt_cell, Delta_x, D_t, up_contS,N_c,matrix,plot=False, fr=10):
     
     flujos_num = [np.zeros(nx_cell[i]) for i in range(N_c)]
     
@@ -1261,32 +1262,43 @@ def soluto_forward_red(g, n, k, E, A, Q, S_inicio, Bw, slope, x_axis,nx_cell, nt
     S_new = S_inicio.copy()
     S_cont = np.zeros((N_c,nt_cell))
         # S_cont[0]=S_new[-1]
-    for i in range(N_c):
-        
+    
+    t_real=0
+    if plot: 
+        plot_all_in_one_ws(A_red,Q_red,S_new,x_axis,Bw,slope,0,t_real,N_c,[0,5],[0,8],'./images/Soluto/')
+        print(0)
+        plt.close('all')
 
-        for x in range(nx_cell[i]):
-            if x == nx_cell[i]-1:
+    for t in np.arange(nt_cell-1):
 
-                # A_prima = np.append(A[i], A[i][-1])
-                # Q_prima = np.append(Q[i], Q[i][-1])
-                # Bw_prima = np.append(Bw[i], Bw[i][-1])
-                # slope_prima = np.append(slope[i], slope[i][-1])
-                # q_right = flujo_numerico(
-                #     g, n[i], Delta_x[i], A_prima, Q_prima, Bw_prima, slope_prima, x)
-                q_right = flujo_numerico(g, n[i], Delta_x[i], A[i], Q[i], Bw[i], slope[i], x-1)
-                flujos_num[i][x] = q_right
-            if x == 0:
-                q_right = flujo_numerico(g, n[i], Delta_x[i], A[i], Q[i], Bw[i], slope[i], x)
-                flujos_num[i][x] = q_right
-            if x > 0 and x < (nx_cell[i]-1):
+        A=A_red[t]
+        Q=Q_red[t]
+        Delta_t=D_t[t]
+        t_real+=Delta_t
 
-                q_right = flujo_numerico(g, n[i], Delta_x[i], A[i], Q[i], Bw[i], slope[i], x)
-                # q_left=flujo_numerico(g,n,Delta_x,A,Q,Bw,slope,i-1)
-                flujos_num[i][x] = q_right
+        for i in range(N_c):
+            for x in range(nx_cell[i]):
+                if x == nx_cell[i]-1:
+
+                    # A_prima = np.append(A[i], A[i][-1])
+                    # Q_prima = np.append(Q[i], Q[i][-1])
+                    # Bw_prima = np.append(Bw[i], Bw[i][-1])
+                    # slope_prima = np.append(slope[i], slope[i][-1])
+                    # q_right = flujo_numerico(
+                    #     g, n[i], Delta_x[i], A_prima, Q_prima, Bw_prima, slope_prima, x)
+                    q_right = flujo_numerico(g, n[i], Delta_x[i], A[i], Q[i], Bw[i], slope[i], x-1)
+                    flujos_num[i][x] = q_right
+                if x == 0:
+                    q_right = flujo_numerico(g, n[i], Delta_x[i], A[i], Q[i], Bw[i], slope[i], x)
+                    flujos_num[i][x] = q_right
+                if x > 0 and x < (nx_cell[i]-1):
+
+                    q_right = flujo_numerico(g, n[i], Delta_x[i], A[i], Q[i], Bw[i], slope[i], x)
+                    # q_left=flujo_numerico(g,n,Delta_x,A,Q,Bw,slope,i-1)
+                    flujos_num[i][x] = q_right
 
         coef = (Delta_t/Delta_x[i])
 
-    for t in np.arange(nt_cell):
         for i in range(N_c):
             coef = (Delta_t/Delta_x[i])
             for x in range(1, nx_cell[i]):
@@ -1331,23 +1343,33 @@ def soluto_forward_red(g, n, k, E, A, Q, S_inicio, Bw, slope, x_axis,nx_cell, nt
             S_old[i] = S_new[i].copy()
             S_cont[i][t] = S_new[i][-1]
 
-        if plot and t%fr==0:
-            plot_all_in_one_ws(A,Q,S_new,x_axis,Bw,slope,t,t*Delta_t,N_c,[0,5],[0,8],'./images/Soluto/')
+        if plot and (t+1)%fr==0:
+            plot_all_in_one_ws(A_red,Q_red,S_new,x_axis,Bw,slope,t+1,t_real,N_c,[0,5],[0,8],'./images/Soluto/')
+            print(t+1)
             plt.close('all')
+
+    plot_all_in_one_ws(A_red,Q_red,S_new,x_axis,Bw,slope,nt_cell,t_real,N_c,[0,5],[0,8],'./images/Soluto/')
+    print(t+1)
+    plt.close('all')
+
 
     return S_new, S_cont
 
 
 # La parte adjunta esta desarrollada específicamente para el llamado caso T
 
-def evolucion_inversa_red(soluto, _medidas, nx_cell, nt, Dx, Dt, Q, A, K, E, N_c, matrix):
+def evolucion_inversa_red(soluto, _medidas, nx_cell, nt, Dx, Del_t, Q, A, K, E, N_c, matrix):
 
-    sigma=np.zeros(nt)
+    sigma=np.zeros(nt+1)
     sigma_prev = [np.zeros(nx_cell[i]) for i in range(N_c)]
     sigma_new = [np.zeros(nx_cell[i]) for i in range(N_c)]
 
+    
+    #print(len(sigma))
 
     for t in np.flip(range(nt)):
+
+        Dt=Del_t[t]
 
         for i in range(N_c):
 
@@ -1356,8 +1378,8 @@ def evolucion_inversa_red(soluto, _medidas, nx_cell, nt, Dx, Dt, Q, A, K, E, N_c
 
             for x in range(nx-1):
 
-                Q_ = Q[i][x]
-                A_ = A[i][x]
+                Q_ = Q[t][i][x]
+                A_ = A[t][i][x]
                 u_ = Q_/A_
                 Dsig = sigma_prev[i][x+1]-sigma_prev[i][x]
                 #Dsig_minus = _fases_sig[i][x,t+1]-_fases_sig[i][x-1,t+1]

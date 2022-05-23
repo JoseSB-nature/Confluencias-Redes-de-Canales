@@ -2,13 +2,13 @@ import numpy as np
 from variables import *
 
 path='./Canales/'
-path2='./Estacionario/'
+path2='./Soluto/'
 
 L,nx_cell,mode,manning,*_=inicializa(N_canals,path+'Canales.txt')
 
 x_axis=[np.linspace(0,L[i],nx_cell[i]) for i in range(N_canals)]
 
-if 0:
+if 1:
 
         # Canal 1
     Base_width = np.linspace(1.0,1.0,nx_cell[0])
@@ -36,7 +36,7 @@ if 0:
 
     open(path+'canal2.txt', 'w').writelines(list('\t'.join(map(str, med_set)) + '\n' for med_set in zip(Base_width,Slope_z,A,Q)))
 
-else:
+    #else:
     soluto_1=np.array([.5]*nx_cell[0])
 
     soluto_2=np.array([0.0]*nx_cell[1])

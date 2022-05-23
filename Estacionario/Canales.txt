@@ -1,4 +1,0 @@
-L   nx  mode        man  qup aup qd  ad 
-100 50 subcritical 0.000 0.0 1.0 0.0 2.0
-100 50 subcritical 0.000 1.0 1.0 0.0 2.0
-100 50 subcritical 0.000 1.0 1.0 0.0 2.0
